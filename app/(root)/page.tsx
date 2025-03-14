@@ -9,11 +9,11 @@ export default async function Home() {
 	}
 
 	return (
-		<div className="">
-			<Hero />
-			<Trending />
-			<HelpCategory />
-			<Email />
+		<div className= "bg-primary" >
+		<Hero />
+		< Trending />
+		<HelpCategory />
+		< Email />
 		</div>
 	);
 }

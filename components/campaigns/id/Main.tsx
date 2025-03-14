@@ -1,153 +1,52 @@
 "use client";
-import CountBox from "../CountBox";
 import { useGetOneCampaign } from "@/utils/hooks";
-import { Wallet } from "lucide-react";
-import Fund from "../Fund";
-import { formatEther, zeroAddress } from "viem";
+import { zeroAddress } from "viem";
 import { getPercentage } from "@/utils/helpers";
-
+import RightSection from "./RightSection";
+import LeftSection from "./LeftSection";
 const Main = ({ id }: { id: string }) => {
-	const { campaign, isPending, refetch } = useGetOneCampaign(id);
-	const dayConvert = 24 * 60 * 60;
+	const { campaign, loading: isPending, error } = useGetOneCampaign(id);
 
-	if (isPending) {
-		return <div className=" grid place-content-center h-dvh ">Loading...</div>;
+	if (error) {
+		console.log("error from getOneCampaign", error);
+		return;
 	}
 
-	if (!campaign)
+	if (isPending) {
+		return <div className="grid place-content-center h-dvh">Loading...</div>;
+	}
+
+	if (!campaign || campaign[0].owner_id === zeroAddress) {
 		return (
-			<div className=" m-[100px] text-center text-2xl font-semibold min-h-dvh">
+			<div className="m-[100px] text-center text-2xl font-semibold min-h-dvh">
 				Can&apos;t find campaign
 			</div>
 		);
+	}
 
 	const {
-		amountCollected,
 		deadline,
 		description,
-		donators,
+		donations,
 		image,
-		name,
-		owner,
-		target,
-	} = campaign;
+		currentAmount,
+		title,
+		targetAmount,
+		owner_id
+	} = campaign[0];
 
-	if (owner === zeroAddress)
-		return (
-			<div className=" m-[100px] text-center text-2xl font-semibold min-h-dvh">
-				Can&apos;t find campaign
-			</div>
-		);
-
-	const percentage: number = getPercentage(target, amountCollected);
+	const percentage = getPercentage(BigInt(targetAmount), currentAmount);
 
 	return (
-		<main className=" max-w-[1200px] mx-auto ">
-			<div className=" flex md:flex-row flex-col mt-10 gap-[30px]">
-				<div className="flex-1 flex-col">
-					<div className=" overflow-hidden rounded-xl ">
-						<img
-							src={image}
-							fetchPriority="high"
-							alt="campaign"
-							className="w-full h-[410px] object-cover rounded-xl transition-all hover:scale-110 duration-300 ease-in-out "
-						/>
-					</div>
+		<main className="max-w-[1200px] mx-auto p-6">
+			<h1 className="text-4xl font-bold mb-8">{title}</h1>
 
-					<div className="relative w-full h-[5px] bg-gray-300 mt-2">
-						<div
-							className="absolute h-full bg-accent-default"
-							style={{
-								width: `${percentage.toFixed(2)}%`,
-							}}></div>
-						<div className="absolute bottom-0 right-0 mt-[20px] text-accent-default font-bold">
-							<p>{`${percentage.toFixed(2)} %`}</p>
-						</div>
-					</div>
-				</div>
+			<div className="grid lg:grid-cols-[2fr_1fr] gap-8">
+				{/* Left Column */}
+				<LeftSection image={image} description={description} owner_id={campaign[0].owner_id} donations={donations} />
 
-				<div className="flex md:w-[150px] w-full flex-wrap justify-between gap-[30px]">
-					<CountBox
-						title="Days Left"
-						value={Math.floor(
-							(Number(deadline) - Date.now() / 1000) / dayConvert
-						)}
-					/>
-					<CountBox
-						title={`Mon Raised `}
-						value={Number(formatEther(amountCollected)).toLocaleString()}
-					/>
-					<CountBox
-						title="Total Donors"
-						value={donators.length}
-					/>
-				</div>
-			</div>
-
-			<div className="mt-[60px] grid lg:grid-cols-[55%_auto] gap-6 ">
-				<div className="flex-[2] flex flex-col gap-[40px]">
-					<div>
-						<h4 className="font-epilogue font-semibold text-[18px] text-black uppercase">
-							Creator
-						</h4>
-
-						<div className="mt-[20px] flex flex-row items-center flex-wrap gap-[14px]">
-							<div className=" bg-slate-300 p-2 rounded-full text-white">
-								<Wallet />
-							</div>
-							<div>
-								<h4 className="font-epilogue font-semibold text-[14px] text-black break-all">
-									{owner}
-								</h4>
-								<p className="mt-[4px] font-epilogue font-normal text-[12px] text-[#808191]">
-									{name}
-								</p>
-							</div>
-						</div>
-					</div>
-
-					<div>
-						<h4 className="font-epilogue font-semibold text-[18px] text-black uppercase">
-							Story
-						</h4>
-
-						<div className="mt-[20px]">
-							<p className="font-epilogue font-normal text-[16px] text-[#808191] leading-[26px] text-justify">
-								{description}
-							</p>
-						</div>
-					</div>
-
-					<div>
-						<h4 className="font-epilogue font-semibold text-[18px] text-black uppercase">
-							Donators
-						</h4>
-
-						<div className="mt-[20px]">
-							{donators.length > 0 ? (
-								donators.map((address, index) => (
-									<div
-										key={`${address}-${index}`}
-										className="flex justify-between items-center gap-4">
-										<p className="font-epilogue font-normal text-[16px] text-[#b2b3bd] leading-[26px] break-ll">
-											{address}
-										</p>
-									</div>
-								))
-							) : (
-								<p className="font-epilogue font-normal text-[16px] text-[#808191] leading-[26px] text-justify">
-									No donators yet. Be the first!
-								</p>
-							)}
-						</div>
-					</div>
-				</div>
-				<div>
-					<Fund
-						id={id}
-						refetch={refetch}
-					/>
-				</div>
+				{/* Right Column */}
+				<RightSection id={id} owner_id={campaign[0].owner_id} description={description} donations={donations} currentAmount={currentAmount} targetAmount={BigInt(targetAmount)} percentage={percentage} deadline={deadline} ownerId={owner_id} />
 			</div>
 		</main>
 	);

@@ -1,30 +1,16 @@
 "use client";
-import { config } from "@/web3/config";
-import monfund_ABI from "@/web3/abi/monfund_ABI";
-import { monfund_CA } from "@/constant";
-import { useEffect } from "react";
-import { useReadContract, useBlockNumber } from "wagmi";
+
+import { useQuery } from "@apollo/client";
+import { GET_CAMPAIGN_BY_ID } from "../queries";
 import { Campaign } from "@/types";
 
 const useGetOneCampaign = (id: string) => {
-	const { data: blockNumber } = useBlockNumber({ watch: true });
-	const {
-		data: campaign,
-		refetch,
-		isPending,
-	} = useReadContract({
-		abi: monfund_ABI,
-		address: monfund_CA,
-		functionName: "getCampaignById",
-		args: [id],
-		config: config,
+	const { data, loading, error } = useQuery(GET_CAMPAIGN_BY_ID, {
+		variables: { id },
+		pollInterval: 3000
 	});
 
-	useEffect(() => {
-		if (Number(blockNumber) % 5 === 0) refetch();
-	}, [blockNumber]);
-
-	return { campaign: campaign as Campaign, isPending, refetch };
+	return { campaign: data?.Campaign as Campaign[] || [], loading, error };
 };
 
 export default useGetOneCampaign;

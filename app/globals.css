@@ -5,7 +5,9 @@
 :root {
 	--background: #ffffff;
 	--foreground: #171717;
-	--accent: rgb(230, 87, 255);
+	--accent:#8E35FD;
+	--accent-dark:#730def;
+	--accent-with-fade:#ac7ce8;
 }
 
 body {
@@ -19,9 +21,24 @@ body {
 		@apply max-w-[1200px] mx-auto;
 	}
 	.accent_with_fade {
-		@apply bg-accent-default hover:bg-[rgb(196,67,219)] transition-colors duration-150 ease-linear;
+		@apply bg-accent-default hover:bg-[var(--accent-with-fade)] transition-colors duration-150 ease-linear;
 	}
 	.grid_layout {
 		@apply grid grid-cols-2 gap-2 lg:grid-cols-[repeat(auto-fill,minmax(250px,1fr))] lg:gap-5;
 	}
+}
+.skill-per {
+background: #8E35FD;
+  animation: progress 0.4s ease-in-out forwards;
+}
+
+@keyframes progress {
+  0% {
+    width: 0;
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 1;
+  }
 }

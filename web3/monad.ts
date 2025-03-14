@@ -1,5 +1,4 @@
 import { type Chain } from "viem";
-
 export const monadTestnet = {
 	id: 10143,
 	name: "Monad Testnet",

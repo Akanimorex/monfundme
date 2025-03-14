@@ -3,20 +3,19 @@ import { FormInputs, ModalChildren } from "@/components/create";
 import { useAccount } from "wagmi";
 import { convertDate } from "@/utils/helpers";
 import { useWrite, useCheckChain } from "@/utils/hooks";
-import { CampaignInput } from "@/types";
-import { parseEther } from "viem";
 import { Modal } from "@/components/general";
 import { ChangeEvent, useState } from "react";
 import { uploadImage } from "@/utils/firebase";
 import Image from "next/image";
 import { toast } from "react-toastify";
+import { createCampaign } from "@/utils/createCampaign";
 
 const Page = () => {
 	const [toggle, setToggle] = useState<boolean>(false);
 	const [isUploading, setIsUploading] = useState<boolean>(false);
 	const [file, setFile] = useState<File | null>();
-	const { isPending, write, id } = useWrite();
-	const { isConnected } = useAccount();
+	const { isPending, id } = useWrite();
+	const { isConnected, address } = useAccount();
 	const { checkAndSwitch } = useCheckChain();
 
 	const submit = async (data: FormData) => {
@@ -31,29 +30,25 @@ const Page = () => {
 			await checkAndSwitch();
 			setIsUploading(true);
 
-			// Handle image upload
-			// const imageFile = data.get("image") as File;
-			// let imageUrl = "";
-
-			// if (imageFile.size > 0) {
-			// 	imageUrl = await uploadImage(imageFile);
-			// }
-
 			const imageUrl = await uploadImage(file as File);
 
 			const objData = Object.fromEntries(data);
 
-			const writeData: CampaignInput = {
-				name: objData.name as string,
+			const writeData = {
 				title: objData.title as string,
 				description: objData.description as string,
-				target: parseEther(objData.target as string),
+				targetAmount: Number(objData.targetAmount),
 				deadline: convertDate(objData.deadline as string),
-				image: imageUrl, // Use the uploaded image URL
-				function: "createCampaign",
+				imageUrl: imageUrl,
+				campaignOwner: address,
 			};
 
-			write(writeData, setToggle, setFile);
+			await createCampaign(writeData);
+			setFile(null);
+			toast.success("Campaign created successfully", {
+				autoClose: 2000,
+			});
+
 		} catch (error) {
 			console.error("Error creating campaign:", error);
 		} finally {
@@ -99,13 +94,9 @@ const Page = () => {
 					/>
 				</div>
 
-				<div className=" bg-accent-dark text-white text-center p-4 ">
-					You will recieve a 100% of the raised amount
-				</div>
-
 				<div className=" grid grid-cols-2 gap-7 ">
 					<FormInputs
-						id="target"
+						id="targetAmount"
 						placeholder="e.g. 1,000,000"
 						name="Target Amount"
 						type="number"

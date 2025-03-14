@@ -26,43 +26,25 @@ const useWrite = (): {
 	const [id, setId] = useState<string>("");
 	const { address } = useAccount();
 
-	let toastId: Id;
 
 	const _config: any = config;
 
 	const write = (
-		writeData: WriteDataType,
+		writeData: any,
 		callback?: (arg?: boolean) => void,
 		clearFunction?: (arg: null) => void
 	) => {
 		startTransition(async () => {
-			toastId = toast.info("Approve wallet transaction ");
 			try {
-				const hash =
-					writeData.function === "createCampaign"
-						? await writeContract(config, {
-								abi: monfund_ABI,
-								address: monfund_CA as `0x${string}`,
-								functionName: writeData.function,
-								args: [
-									address,
-									writeData.name,
-									writeData.title,
-									writeData.description,
-									writeData.target,
-									writeData.deadline,
-									writeData.image,
-								],
-						  })
-						: await writeContract(config, {
-								abi: monfund_ABI,
-								value: BigInt(writeData.amount),
-								address: monfund_CA as `0x${string}`,
-								functionName: writeData.function,
-								args: [writeData.id, writeData.amount],
-						  });
+				const hash = await writeContract(config, {
+					abi: monfund_ABI,
+					value: BigInt(writeData.amount),
+					address: monfund_CA as `0x${string}`,
+					functionName: writeData.function,
+					args: [writeData.id, writeData.amount],
+				});
 
-				toastId = toast.loading("Transaction pending ...");
+				toast.loading("Transaction pending ...");
 
 				const { status, logs } = await waitForTransactionReceipt(_config, {
 					hash,
@@ -78,27 +60,13 @@ const useWrite = (): {
 
 				setId(decodedEventLog.args.campaignId);
 
-				toast.update(toastId, {
-					render: "Transaction successful!",
-					type: "success",
-					isLoading: false,
-					autoClose: 2000,
-				});
-
 				callback && callback(true);
 			} catch (error: any) {
 				console.error("TRANSACTION ERROR!", error);
 				const errorMessage = error.shortMessage
 					? error.shortMessage
 					: error?.message;
-				toastId
-					? toast.update(toastId, {
-							render: errorMessage,
-							type: "error",
-							isLoading: false,
-							autoClose: 2000,
-					  })
-					: toast.error("Error in transaction!");
+
 			} finally {
 				clearFunction && clearFunction(null);
 			}

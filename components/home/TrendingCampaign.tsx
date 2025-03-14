@@ -2,12 +2,31 @@
 import { CampaignCard } from "../general";
 import { Campaign } from "@/types";
 import LoadingCard from "../general/LoadingCard";
-import { useTrendingCampaigns } from "@/utils/hooks";
+import { useQuery } from "@apollo/client";
+import { GET_CAMPAIGNS } from "@/utils/queries";
+import { useEffect, useState } from "react";
 
 const TrendingCampaign = () => {
-	const { campaigns, isPending } = useTrendingCampaigns();
 
-	if (isPending) {
+	const { data, loading, error } = useQuery(GET_CAMPAIGNS);
+
+	const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+
+	useEffect(() => {
+		if (data) {
+			console.log("campaigns.... trending", data.Campaign.slice(0, 3));
+			setCampaigns(data.Campaign.slice(0, 3));
+		} else {
+			setCampaigns([]);
+		}
+	}, [data, loading, error]);
+
+	if (error) {
+		console.log("error from getCampaigns", error);
+		return;
+	}
+
+	if (loading) {
 		return [1, 2, 3].map((i: number) => (
 			<LoadingCard
 				key={i}
@@ -16,7 +35,7 @@ const TrendingCampaign = () => {
 		));
 	}
 
-	console.log("campaigns....", campaigns);
+
 
 	return (
 		<>

@@ -4,7 +4,6 @@ import Image from "next/image";
 import { Footer } from "../general";
 import subscribe from "@/db/subscribe";
 import { toast } from "react-toastify";
-import mongoose from "mongoose";
 
 const roboto = Roboto({
 	subsets: ["latin"],
@@ -12,7 +11,6 @@ const roboto = Roboto({
 });
 
 const Email = () => {
-	console.log("READY STATE ...", mongoose?.connection?.readyState);
 
 	const submit = async (form: FormData) => {
 		try {

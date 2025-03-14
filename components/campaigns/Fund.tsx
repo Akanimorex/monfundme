@@ -1,20 +1,23 @@
 "use client";
 import { useState } from "react";
 import { useCheckChain, useWrite } from "@/utils/hooks";
-import { WriteDataType } from "@/types";
 import { formatEther, parseEther } from "viem";
 import { Modal } from "../general";
 import { useAccount, useBalance } from "wagmi";
 import { config } from "@/web3/config";
 import { toast } from "react-toastify";
 import Image from "next/image";
+import { useConnectModal } from "@rainbow-me/rainbowkit";
+import { waitForTransactionReceipt, writeContract } from "wagmi/actions";
+import monfund_ABI from "@/web3/abi/monfund_ABI";
 
 const Fund = ({ id, refetch }: { id: string; refetch: () => void }) => {
 	const [amount, setAmount] = useState<string>("");
 	const [toggle, setToggle] = useState<boolean>(false);
-	const { isPending, write, _status } = useWrite();
+	const { isPending, _status } = useWrite();
 	const { checkAndSwitch } = useCheckChain();
 	const { isConnected, address } = useAccount();
+	const { openConnectModal } = useConnectModal();
 
 	const { data: bal } = useBalance({ address: address, config: config });
 
@@ -34,6 +37,8 @@ const Fund = ({ id, refetch }: { id: string; refetch: () => void }) => {
 			return;
 		}
 
+		await checkAndSwitch();
+
 		if (parseEther(amount) > (bal?.value as bigint)) {
 			toast.error("Insufficient DMON", {
 				autoClose: 2000,
@@ -41,13 +46,41 @@ const Fund = ({ id, refetch }: { id: string; refetch: () => void }) => {
 			return;
 		}
 
-		const writeData: WriteDataType = {
-			function: "donateWithMON",
-			amount: parseEther(amount),
-			id: id,
-		};
-		await checkAndSwitch();
-		write(writeData, setToggle);
+		const donate = new Promise(async (resolve, reject) => {
+			try {
+				const tx = await writeContract(config, {
+					abi: monfund_ABI,
+					address: id as `0x${string}`,
+					functionName: "donateWithMON",
+					value: parseEther(amount),
+				});
+
+				const { status } = await waitForTransactionReceipt(config, {
+					hash: tx,
+				});
+
+				if (status == "success") {
+					setToggle(true);
+					resolve("Campaign funded");
+				} else {
+					reject("Error funding campaign");
+				}
+
+			} catch (error: any) {
+				reject(error?.shortMessage || error?.message);
+			}
+		});
+		toast.promise(donate, {
+			pending: "Funding campaign ... ",
+			success: {
+				render() {
+					return "Campaign funded";
+				},
+			},
+			error: "Error funding campaign",
+		});
+
+
 	};
 
 	return (
@@ -64,22 +97,17 @@ const Fund = ({ id, refetch }: { id: string; refetch: () => void }) => {
 					/>
 				</Modal>
 			)}
-			<div className="flex-1 sticky top-[100px] ">
-				<h4 className="font-epilogue font-semibold text-[18px] text-black uppercase">
-					Fund
-				</h4>
 
-				<div className="mt-[20px] flex flex-col p-5 bg-slate-100 rounded-[10px] shadow-lg border border-slate-200 ">
-					<p className="font-epilogue fount-medium text-[20px] leading-[30px] text-center text-black font-semibold">
-						Fund the campaign
-					</p>
-					<div className="mt-[30px]">
-						<div className=" bg-white grid grid-cols-[65%_35%] ">
+			{isConnected ? (
+
+				<div className="mb-5 flex flex-col ">
+					<div className="">
+						<div className=" bg-slate-100 grid grid-cols-[50%_50%]  ">
 							<input
 								type="number"
 								placeholder="MON 0.1"
 								step="0.01"
-								className="w-full py-[10px] bg-white sm:px-[20px] px-[15px] outline-none text-black text-[18px] leading-[30px] placeholder:text-black/50 rounded-[10px]"
+								className="  w-full py-[10px] bg-transparent sm:px-[20px] px-[5px] outline-none text-black text-[18px] leading-[30px] placeholder:text-black/50 rounded-[10px]"
 								value={amount}
 								onChange={(e) => setAmount(e.target.value)}
 							/>
@@ -88,31 +116,20 @@ const Fund = ({ id, refetch }: { id: string; refetch: () => void }) => {
 							</p>
 						</div>
 
-						<div className="my-[20px] p-4rounded-[10px]">
-							<p className="mt-[20px] font-epilogue font-normal leading-[22px] text-[#808191]">
-								Support the campaign for no reward, just because it speaks to
-								you.
-							</p>
-						</div>
-						{isConnected ? (
-							<button
-								type="button"
-								disabled={isPending ? true : false}
-								className={` disabled:bg-accent-10 font-epilogue font-semibold text-[16px] leading-[26px] shadow-md text-white  min-h-[52px] px-4 rounded-[10px] accent_with_fade `}
-								onClick={!isPending ? handleDonate : () => null}>
-								Fund campaign
-							</button>
-						) : (
-							<button
-								type="button"
-								disabled
-								className={` bg-accent-10 font-epilogue font-semibold text-[16px] leading-[26px] shadow-md text-white  min-h-[52px] px-4 rounded-[10px]`}>
-								Connect wallet to fund
-							</button>
-						)}
+						<button
+							type="button"
+							disabled={isPending ? true : false}
+							className={` disabled:bg-white font-epilogue font-semibold text-[16px] leading-[26px] shadow-md text-white  min-h-[52px] px-4 rounded-[10px] accent_with_fade mt-5 hover:bg-accent-dark `}
+							onClick={!isPending ? handleDonate : () => null}>
+							Fund campaign
+						</button>
 					</div>
 				</div>
-			</div>
+			) : (
+				<button onClick={openConnectModal} className="w-full bg-purple-600 text-white py-3 rounded-lg font-medium mb-4">
+					Connect wallet to fund
+				</button>
+			)}
 		</>
 	);
 };

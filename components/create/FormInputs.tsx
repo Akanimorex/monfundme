@@ -10,6 +10,9 @@ interface FormInputInterface {
 }
 
 const FormInputs = ({ id, name, type, placeholder }: FormInputInterface) => {
+
+  const today = new Date().toISOString().split('T')[0];
+
   return (
     <label htmlFor={id}>
       <p>
@@ -27,6 +30,7 @@ const FormInputs = ({ id, name, type, placeholder }: FormInputInterface) => {
           required
           name={id}
           type={type}
+          min={id === "deadline" ? today : undefined}
           placeholder={placeholder}
           className={`px-4 py-2 w-full border border-slate-300 rounded-lg mt-1`}
         />

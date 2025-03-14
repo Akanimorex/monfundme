@@ -1,16 +1,11 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { DM_Sans } from "next/font/google";
 import "./globals.css";
-import { Nav } from "@/components/general";
 import Web3Provider from "@/web3/config";
+import ApolloClientProvider from "@/web3/Apollo";
 
-const geistSans = Geist({
-	variable: "--font-geist-sans",
-	subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-	variable: "--font-geist-mono",
+const dmSans = DM_Sans({
+	variable: "--font-dm-sans",
 	subsets: ["latin"],
 });
 
@@ -27,10 +22,11 @@ export default function RootLayout({
 	return (
 		<html lang="en">
 			<body
-				className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+				className={`${dmSans.variable} antialiased`}>
 				<Web3Provider>
-					<Nav />
-					{children}
+					<ApolloClientProvider>
+						{children}
+					</ApolloClientProvider>
 				</Web3Provider>
 			</body>
 		</html>

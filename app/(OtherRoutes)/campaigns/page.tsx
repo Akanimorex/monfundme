@@ -4,6 +4,8 @@ import { StartButton } from "@/components/general";
 import { Suspense } from "react";
 
 const Page = () => {
+
+
 	return (
 		<div className=" py-[100px] lg:pt-[125px] p-3 min-h-dvh ">
 			<main className=" width_to_center ">

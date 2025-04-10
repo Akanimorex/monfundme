@@ -7,10 +7,25 @@ import { useRouter } from "next/navigation";
 import MonfundmeLogo from "./MonfundmeLogo";
 import { sliceAddress } from "@/utils/helpers";
 
+
+import {
+  useAuthModal,
+  useLogout,
+  useSignerStatus,
+  useUser,
+} from "@account-kit/react";
+
+
 const Nav = () => {
 	const { openConnectModal } = useConnectModal();
 	const { address, isConnected } = useAccount();
 	const { push } = useRouter();
+
+//alchemy code
+	const user = useUser();
+	const { openAuthModal } = useAuthModal();
+	const signerStatus = useSignerStatus();
+	const { logout } = useLogout();
 
 	const handleDisconnect = () => {
 		push("/dashboard");
@@ -42,6 +57,9 @@ const Nav = () => {
 					{isConnected
 						? ` Profile | ${sliceAddress(address as `0x${string}`)}`
 						: "connect wallet"}
+				</button>
+				<button className="akui-btn akui-btn-primary" onClick={openAuthModal}>
+					Login
 				</button>
 			</main>
 		</nav>

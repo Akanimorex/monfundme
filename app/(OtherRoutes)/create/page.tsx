@@ -151,7 +151,7 @@ const Page = () => {
 						type="button"
 						disabled
 						className={` disabled:bg-accent-10 text-white rounded-lg w-fit mx-auto  px-5 py-3 duration-150 ease-linear transition-colors shadow-md my-3`}>
-						Connect Wallet to creae a campaign
+						Connect Wallet to create a campaign
 					</button>
 				)}
 			</form>

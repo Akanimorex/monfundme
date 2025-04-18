@@ -37,7 +37,7 @@ export default async function RootLayout({
 				className={`${dmSans.variable} antialiased`}>
 				<Web3Provider>
 					<ApolloClientProvider>
-						<Providers>
+						<Providers initialState={initialState}>
 							{children}
 						</Providers>
 					</ApolloClientProvider>

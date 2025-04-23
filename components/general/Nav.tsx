@@ -39,6 +39,7 @@ const Nav = () => {
       console.error("Login error:", error);
     }
   };
+  console.log(address, "ADDY")
 
   const handleClick = () => {
     if (isConnected || user) {

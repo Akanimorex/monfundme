@@ -25,21 +25,21 @@ const Nav = () => {
   const signerStatus = useSignerStatus();
   const user = useUser();
 
-  const handleLogin = async () => {
-    try {
-      if (!isConnected && openConnectModal) {
-        // Try Metamask (Wagmi)
-        await openConnectModal();
-      }
-      // If Metamask rejected or not available, fallback to social login
-      if (!isConnected && !user) {
-        openAuthModal();
-      }
-    } catch (error) {
-      console.error("Login error:", error);
-    }
-  };
-  console.log(address, "ADDY")
+  // const handleLogin = async () => {
+  //   try {
+  //     if (!isConnected && openConnectModal) {
+  //       // Try Metamask (Wagmi)
+  //       await openConnectModal();
+  //     }
+  //     // If Metamask rejected or not available, fallback to social login
+  //     if (!isConnected && !user) {
+  //       openAuthModal();
+  //     }
+  //   } catch (error) {
+  //     console.error("Login error:", error);
+  //   }
+  // };
+  // console.log(address, "ADDY")
 
   const handleClick = () => {
     if (isConnected || user) {

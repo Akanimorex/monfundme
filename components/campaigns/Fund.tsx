@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useCheckChain, useWrite } from "@/utils/hooks";
 import { formatEther, parseEther } from "viem";
 import { Modal } from "../general";
@@ -10,8 +10,14 @@ import Image from "next/image";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { waitForTransactionReceipt, writeContract } from "wagmi/actions";
 import monfund_ABI from "@/web3/abi/monfund_ABI";
-import { useUser, useSmartAccountClient, useSendUserOperation } from "@account-kit/react";
+import {
+  useAuthModal,
+  useUser,
+  useSmartAccountClient,
+  useSendUserOperation,
+} from "@account-kit/react";
 import { encodeFunctionData } from "viem";
+import { resolve } from "path";
 
 const Fund = ({ id, refetch }: { id: string; refetch: () => void }) => {
   const [amount, setAmount] = useState<string>("");
@@ -21,65 +27,91 @@ const Fund = ({ id, refetch }: { id: string; refetch: () => void }) => {
   const { isConnected, address } = useAccount();
   const { openConnectModal } = useConnectModal();
   const user = useUser();
-  const { client } = useSmartAccountClient({}); 
+  const { client } = useSmartAccountClient({});
   const { sendUserOperation, isSendingUserOperation } = useSendUserOperation({
     client,
     // optional parameter that will wait for the transaction to be mined before returning
     waitForTxn: true,
     onSuccess: ({ hash, request }) => {
       // [optional] Do something with the hash and request
-      console.log(hash, "hash");
-      console.log(request, "request");
-
+      console.log(hash, "hash"); 
+      resolve("Campaign funded!");
     },
     onError: (error) => {
       // [optional] Do something with the error
       console.log(error, "error");
     },
   });
+  const { openAuthModal } = useAuthModal();
+
+  const [smartBalance, setSmartBalance] = useState<bigint | null>(null);
 
   const { data: bal } = useBalance({ address: address, config: config });
 
-  const Mon_bal = bal
-    ? ` ${Number(formatEther(bal?.value)).toFixed(2)} DMON`
-    : " -- ";
+  useEffect(() => {
+    const fetchBalance = async () => {
+      if (client && user) {
+        try {
+          const bal = await client?.getBalance({
+            address: client.account.address,
+          });
+          setSmartBalance(bal);
+        } catch (err) {
+          console.error("Failed to fetch smart account balance", err);
+        }
+      }
+    };
+    fetchBalance();
+  }, [client, user]);
+
+  const balanceToUse = useMemo(() => {
+    if (user && client && smartBalance !== null) return smartBalance;
+    if (bal?.value) return bal.value;
+    return null;
+  }, [bal, smartBalance, user, client]);
+
+  const Mon_bal = balanceToUse
+    ? `${Number(formatEther(balanceToUse)).toFixed(2)} DMON`
+    : "--";
+
+  // const Mon_bal = bal
+  //   ? ` ${Number(formatEther(bal?.value)).toFixed(2)} DMON`
+  //   : " -- ";
 
   if (_status == "success") {
     refetch();
   }
+
   const handleDonate = async () => {
     if (!amount) {
       toast.error("Input an amount");
       return;
     }
-  
+
     await checkAndSwitch();
-  
+
     const value = parseEther(amount);
-  
-    if (value > (bal?.value as bigint)) {
+    const balanceToCheck = user && client && smartBalance !== null ? smartBalance : bal?.value as bigint;
+
+    if (value > (balanceToCheck)) {
       toast.error("Insufficient DMON");
       return;
     }
 
-    console.log("user exists:", Boolean(user));
-    console.log("client exists:", Boolean(client));
-    console.log("Both exist:", Boolean(user && client));
 
     const donate = new Promise(async (resolve, reject) => {
       try {
-        if (true || (user && client)) {
-          console.log("using ssmart account flow")
+        if (user && client) {
           // Smart Account flow
           const data = encodeFunctionData({
             abi: monfund_ABI,
             functionName: "donateWithMON",
           });
-  
+
           try {
             // The sendUserOperation might return void when waitForTxn is true
             // so we need to handle it properly
-           await sendUserOperation({
+            await sendUserOperation({
               uo: {
                 target: id as `0x${string}`,
                 value,
@@ -87,7 +119,7 @@ const Fund = ({ id, refetch }: { id: string; refetch: () => void }) => {
               },
             });
 
-            // console.log(res,"res");         
+            // console.log(res,"res");
             // If it didn't throw an error, we can assume it succeeded
             setToggle(true);
             resolve("Campaign funded via Smart Account");
@@ -95,7 +127,7 @@ const Fund = ({ id, refetch }: { id: string; refetch: () => void }) => {
             reject("Error funding campaign");
           }
         } else {
-          console.log("using regular flow")
+          console.log("using regular flow");
           // Regular wallet flow
           try {
             const tx = await writeContract(config, {
@@ -104,11 +136,11 @@ const Fund = ({ id, refetch }: { id: string; refetch: () => void }) => {
               functionName: "donateWithMON",
               value,
             });
-  
+
             const receipt = await waitForTransactionReceipt(config, {
               hash: tx,
             });
-  
+
             if (receipt.status === "success") {
               setToggle(true);
               resolve("Campaign funded");
@@ -123,11 +155,14 @@ const Fund = ({ id, refetch }: { id: string; refetch: () => void }) => {
         reject("Error funding campaign");
       }
     });
-  
+
     toast.promise(donate, {
       pending: "Funding campaign ...",
-      success: "Campaign funded",
-      error: "Error funding campaign",
+      success:{
+        render() {
+          return "Campaign funded";}
+      },
+      error: "error funding campaign",
     });
   };
 
@@ -175,7 +210,7 @@ const Fund = ({ id, refetch }: { id: string; refetch: () => void }) => {
         </div>
       ) : (
         <button
-          onClick={openConnectModal}
+          onClick={()=>openAuthModal()}
           className="w-full bg-purple-600 text-white py-3 rounded-lg font-medium mb-4"
         >
           Connect wallet to fund

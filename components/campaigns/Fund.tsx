@@ -15,6 +15,7 @@ import {
   useUser,
   useSmartAccountClient,
   useSendUserOperation,
+  useWaitForUserOperationTransaction,
 } from "@account-kit/react";
 import { encodeFunctionData } from "viem";
 import { resolve } from "path";
@@ -28,20 +29,51 @@ const Fund = ({ id, refetch }: { id: string; refetch: () => void }) => {
   const { openConnectModal } = useConnectModal();
   const user = useUser();
   const { client } = useSmartAccountClient({});
-  const { sendUserOperation, isSendingUserOperation } = useSendUserOperation({
+  const [txHash, setTxHash] = useState<string | null>(null);
+  
+  // Add the transaction tracking hook
+  const { 
+    waitForUserOperationTransaction,
+    isWaitingForUserOperationTransaction,
+    waitForUserOperationTransactionResult
+  } = useWaitForUserOperationTransaction({
+    client,
+    onSuccess: (result) => {
+      console.log("Transaction confirmed:", result);
+      toast.success("Transaction confirmed successfully");
+      setToggle(true);
+      refetch();
+    },
+    onError: (error) => {
+      console.error("Transaction failed:", error);
+      toast.error(error.message);
+    }
+  });
+  
+  // Effect to track transaction when hash is available
+  useEffect(() => {
+    if (txHash && client) {
+      waitForUserOperationTransaction({ hash: txHash as `0x${string}` });
+    }
+  }, [txHash, client, waitForUserOperationTransaction]);
+  
+  const { sendUserOperation, isSendingUserOperation, sendUserOperationAsync } = useSendUserOperation({
     client,
     // optional parameter that will wait for the transaction to be mined before returning
-    waitForTxn: true,
     onSuccess: ({ hash, request }) => {
       // [optional] Do something with the hash and request
-      console.log(hash, "hash"); 
-      resolve("Campaign funded!");
+      console.log(hash, "hash");
+      setTxHash(hash);
+      toast.info("Transaction submitted, waiting for confirmation...");
+      // We'll let the tracking hook handle the success notification
     },
     onError: (error) => {
       // [optional] Do something with the error
       console.log(error, "error");
+      toast.error("Transaction failed");
     },
   });
+  
   const { openAuthModal } = useAuthModal();
 
   const [smartBalance, setSmartBalance] = useState<bigint | null>(null);
@@ -74,10 +106,6 @@ const Fund = ({ id, refetch }: { id: string; refetch: () => void }) => {
     ? `${Number(formatEther(balanceToUse)).toFixed(2)} DMON`
     : "--";
 
-  // const Mon_bal = bal
-  //   ? ` ${Number(formatEther(bal?.value)).toFixed(2)} DMON`
-  //   : " -- ";
-
   if (_status == "success") {
     refetch();
   }
@@ -91,13 +119,15 @@ const Fund = ({ id, refetch }: { id: string; refetch: () => void }) => {
     await checkAndSwitch();
 
     const value = parseEther(amount);
-    const balanceToCheck = user && client && smartBalance !== null ? smartBalance : bal?.value as bigint;
+    const balanceToCheck =
+      user && client && smartBalance !== null
+        ? smartBalance
+        : (bal?.value as bigint);
 
-    if (value > (balanceToCheck)) {
+    if (value > balanceToCheck) {
       toast.error("Insufficient DMON");
       return;
     }
-
 
     const donate = new Promise(async (resolve, reject) => {
       try {
@@ -111,23 +141,23 @@ const Fund = ({ id, refetch }: { id: string; refetch: () => void }) => {
           try {
             // The sendUserOperation might return void when waitForTxn is true
             // so we need to handle it properly
-            await sendUserOperation({
+           const res = await sendUserOperationAsync({
               uo: {
                 target: id as `0x${string}`,
                 value,
                 data,
               },
             });
-
             // console.log(res,"res");
+            resolve("campaign funded");
             // If it didn't throw an error, we can assume it succeeded
             setToggle(true);
-            resolve("Campaign funded via Smart Account");
+            // resolve("Campaign funded via Smart Account");
           } catch (smartAccountError: any) {
             reject("Error funding campaign");
           }
         } else {
-          console.log("using regular flow");
+          // console.log("using regular flow");
           // Regular wallet flow
           try {
             const tx = await writeContract(config, {
@@ -158,11 +188,12 @@ const Fund = ({ id, refetch }: { id: string; refetch: () => void }) => {
 
     toast.promise(donate, {
       pending: "Funding campaign ...",
-      success:{
+      success: {
         render() {
-          return "Campaign funded";}
+          return "Transaction submitted";
+        },
       },
-      error: "error funding campaign",
+      error: "Error funding campaign",
     });
   };
 
@@ -204,13 +235,13 @@ const Fund = ({ id, refetch }: { id: string; refetch: () => void }) => {
               className={` disabled:bg-white font-epilogue font-semibold text-[16px] leading-[26px] shadow-md text-white  min-h-[52px] px-4 rounded-[10px] accent_with_fade mt-5 hover:bg-accent-dark `}
               onClick={!isPending ? handleDonate : () => null}
             >
-              Fund campaign
+              {isPending || isSendingUserOperation ? "Confirming transaction..." : "Fund campaign"}
             </button>
           </div>
         </div>
       ) : (
         <button
-          onClick={()=>openAuthModal()}
+          onClick={() => openAuthModal()}
           className="w-full bg-purple-600 text-white py-3 rounded-lg font-medium mb-4"
         >
           Connect wallet to fund

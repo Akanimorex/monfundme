@@ -231,8 +231,8 @@ const Fund = ({ id, refetch }: { id: string; refetch: () => void }) => {
 
             <button
               type="button"
-              disabled={isPending ? true : false}
-              className={` disabled:bg-white font-epilogue font-semibold text-[16px] leading-[26px] shadow-md text-white  min-h-[52px] px-4 rounded-[10px] accent_with_fade mt-5 hover:bg-accent-dark `}
+              disabled={isSendingUserOperation ? true : false}
+              className={` disabled:bg-gray-300 disabled:text-[black] font-epilogue font-semibold text-[16px] leading-[26px] shadow-md text-white  min-h-[52px] px-4 rounded-[10px] accent_with_fade mt-5 hover:bg-accent-dark `}
               onClick={!isPending ? handleDonate : () => null}
             >
               {isPending || isSendingUserOperation ? "Confirming transaction..." : "Fund campaign"}
